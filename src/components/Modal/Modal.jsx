@@ -1,39 +1,40 @@
-import { Overlay, ModalContainer } from './Modal.styled'
+import { Overlay, ModalContainer } from './Modal.styled';
 import { createPortal } from 'react-dom';
-import { Component } from 'react';
+import { useEffect } from 'react';
+import PropTypes from 'prop-types';
+
 const modalRoot = document.querySelector('#modal-root');
 
-export class Modal extends Component {
-    componentDidMount() {
-        window.addEventListener('keydown', this.addKeyDown);
+export const Modal = ({ addImg, toggleModal }) => {
+  useEffect(() => {
+    window.addEventListener('keydown', addKeyDown);
+    return () => {
+      window.removeEventListener('keydown', addKeyDown);
+    };
+  });
 
+  const addKeyDown = evt => {
+    if (evt.code === 'Escape') {
+      toggleModal();
     }
-   
-    componentWillUnmount() {
-        window.removeEventListener('keydown', this.addKeyDown);
+  };
+  const addOverlay = evt => {
+    if (evt.currentTarget === evt.target) {
+      toggleModal();
     }
+  };
 
-     addKeyDown = evt => {
-         if (evt.code === 'Escape') {
-                console.log('object закрити');
-                this.props.toggleModal();
-            }
-     }
-    addOverlay = evt => {
-        if (evt.currentTarget === evt.target) {
-            this.props.toggleModal();
-        }
-    }
+  return createPortal(
+    <Overlay onClick={addOverlay}>
+      <ModalContainer>
+        <img src={addImg} alt="Img" />
+      </ModalContainer>
+    </Overlay>,
+    modalRoot
+  );
+};
 
-
-    render() {
-            return createPortal(
-        <Overlay onClick={this.addOverlay}>
-            <ModalContainer >
-                <img src={this.props.addImg} alt="Img" />
-            </ModalContainer>
-        </Overlay>,modalRoot)
-        
-    }
-
-}
+Modal.prototype = {
+  toggleModal: PropTypes.func.isRequired,
+  addImg: PropTypes.string.isRequired,
+};

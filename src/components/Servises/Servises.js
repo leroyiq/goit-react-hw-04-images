@@ -13,12 +13,15 @@ export const requestApi = async (inputValue, page) => {
     if (response.data.total === 0) {
       toast.error(' Nothing found! Try again', {
         duration: 1500,
-        position: 'top-right',
+        position: 'bottom-center',
       });
     }
     return response.data;
   } catch (error) {
-    return toast.error('ERROR in Servises', error);
+    return toast.error('ERROR in Servises', error, {
+      duration: 1500,
+      position: 'top-right',
+    });
   }
 };
 requestApi.propTypes = {

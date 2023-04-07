@@ -1,5 +1,5 @@
-import { Component } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
 import { requestApi } from './Servises/Servises';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
@@ -8,85 +8,91 @@ import { Button } from './Button/Button';
 import { Modal } from './Modal/Modal';
 import { Loader } from './Loader/Loader';
 
-export class App extends Component {
-  state = {
-    page: 1,
-    imageName: '',
-    imageArray: [],
-    isLoading: false,
-    largeImageURL: false,
-  };
+export const App = () => {
+  const [page, setPage] = useState(0);
+  const [pageNumber, setPageNumber] = useState(false);
+  const [imageName, setImageName] = useState('');
+  const [imageArray, setImageArray] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState(false);
 
-  handleSubmit = async imageName => {
-    this.setState({ isLoading: true });
-    this.setState({
-      imageName,
-      page: 1,
-      imageArray: [],
-      largeImageURL: false,
-    });
-  };
-
-  componentDidUpdate(prevProps, prevState) {
-    const prevName = prevState.imageName;
-    const nextName = this.state.imageName;
-    if (prevName !== nextName) {
-      this.loadDataImage();
+  const handleSubmit = getImageName => {
+    if (getImageName === imageName) {
+      toast.error('Try somthing else', {
+        position: 'bottom-center',
+        duration: 1500,
+      });
+      return;
     }
-  }
 
-  loadDataImage = async () => {
-    const { page, imageName } = this.state;
+    setImageName(getImageName);
+    setImageArray([]);
+    setPage(1);
+  };
+
+  useEffect(() => {
+    if (!imageName) {
+      return;
+    }
+    loadDataImage(imageName, page);
+  }, [imageName, page]);
+
+  const loadDataImage = async (imageName, page) => {
+    setIsLoading(true);
+
     try {
       const data = await requestApi(imageName, page);
-      if (data.hits.length < 11) {
-        this.setState({ page: false });
+
+      if (data.total === 0) {
+        return setPageNumber(false);
       }
       data.hits.map(objects => {
-        return this.setState(({ imageArray }) => ({
-          imageArray: [...imageArray, objects],
-        }));
+        return setImageArray(prevState => [...prevState, objects]);
       });
-      this.setState(({ page }) => ({
-        page: page + 1,
-      }));
+
+      if (page === Math.ceil(data.totalHits / 12)) {
+        toast.info('You have seen all photos ', {
+          position: 'bottom-center',
+          duration: 1500,
+        });
+        return setPageNumber(false);
+      }
+      setPageNumber(true);
     } catch (error) {
-      console.log('!!!!  error', error);
+      toast.info('We have a problem ' + error, {
+        position: 'bottom-center',
+        duration: 1500,
+      });
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   };
-  getLargeImage = largeImageURL => {
-    this.setState({ largeImageURL });
+
+  const getLargeImage = getLargeImageURL => {
+    setLargeImageURL(getLargeImageURL);
   };
-  toggleModal = evt => {
-    this.setState({ largeImageURL: false });
+  const toggleModal = () => {
+    setLargeImageURL(false);
   };
-
-  render() {
-    const { imageArray, page, isLoading, largeImageURL } = this.state;
-    return (
-      <div>
-        <Searchbar getImageName={this.handleSubmit} />
-
-        {isLoading && <Loader />}
-        <ImageGallery>
-          {imageArray === [] ? (
-            ''
-          ) : (
-            <ImageGalleryItem
-              images={imageArray}
-              getLargeImage={this.getLargeImage}
-            />
-          )}
-        </ImageGallery>
-        {page < 2 ? '' : <Button loadMoreImg={this.loadDataImage} />}
-
-        {largeImageURL && (
-          <Modal addImg={largeImageURL} toggleModal={this.toggleModal} />
+  const loadMore = () => {
+    setPage(page + 1);
+  };
+  return (
+    <div>
+      <Searchbar getImageName={handleSubmit} />
+      {isLoading && <Loader />}
+      <ImageGallery>
+        {imageArray === [] ? (
+          ''
+        ) : (
+          <ImageGalleryItem images={imageArray} getLargeImage={getLargeImage} />
         )}
-        <Toaster />
-      </div>
-    );
-  }
-}
+      </ImageGallery>
+      {pageNumber && <Button loadMoreImg={loadMore} />}
+      {largeImageURL && (
+        <Modal addImg={largeImageURL} toggleModal={toggleModal} />
+      )}
+      <Toaster />;
+    </div>
+  );
+};
